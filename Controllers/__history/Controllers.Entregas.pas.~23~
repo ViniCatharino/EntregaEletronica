@@ -1,0 +1,211 @@
+unit Controllers.Entregas;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     DAO.Entregas,
+     System.SysUtils;
+
+procedure RegistrarRotas;
+procedure InserirEntrega(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ListarEntregasEmAberto(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ListarPorTelefone(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure EditarPorId(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ListarPorId(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure MarcarComoEntregue(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+
+procedure RegistrarRotas;
+begin
+   THorse.Post('/NovaEntrega'                   , InserirEntrega);
+   THorse.Get ('/EntregasEmAbertas'             , ListarEntregasEmAberto);
+   THorse.Get ('/ListarPorTelefone/:Telefone'   , ListarPorTelefone);
+   THorse.post('/EditarEntrega/:id_Entrega'     , EditarPorId);
+   THorse.Get ('/ListarEntregaPorId/:Id_Entrega', ListarPorId);
+   THorse.Post('/MarcarComoEntregue/:Id_Entrega', MarcarComoEntregue);
+
+end;
+
+procedure MarcarComoEntregue(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas : TDAOEntregas;
+  LId_Entrega   : String;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      LId_Entrega := Req.Params['Id_Entrega'];
+      Res.Send<TJSONObject>(LDAOEntregas.MarcarComoEntregue(LId_Entrega))
+                          .Status(LDAOEntregas.CodigoResposta);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+
+end;
+
+procedure ListarPorTelefone(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas : TDAOEntregas;
+  LTelefone    : String;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      LTelefone       := Req.Params['Telefone'];
+
+      Res.Send<TJSONArray>(LDAOEntregas.ListarporTelefone(LTelefone))
+                          .Status(LDAOEntregas.CodigoResposta);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+end;
+
+procedure ListarPorid(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas : TDAOEntregas;
+  LId_Cliente    : String;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      LId_Cliente := Req.Params['id_Entrega'];
+
+      Res.Send<TJSONArray>(LDAOEntregas.ListarPorId(LId_Cliente))
+                          .Status(LDAOEntregas.CodigoResposta);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+end;
+
+procedure EditarPorId(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas   : TDAOEntregas;
+  LJSONBody      : TJSONObject;
+  LId_Entrega    : String;
+  LNome          : String;
+  LTelefone      : String;
+  LEndereco      : String;
+  LBateria       : String;
+  LObservacao    : String;
+  LPagamento     : String;
+  LValor         : String;
+  LVeiculo       : String;
+  LTipoServico   : String;
+  LStatus        : String;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      LJSONBody      := Req.Body<TJSONObject>;
+      LNome          := LJSONBody.GetValue<string>('Nome');
+      LTelefone      := LJSONBody.GetValue<string>('Telefone');
+      LEndereco      := LJSONBody.GetValue<string>('Endereco');
+      LBateria       := LJSONBody.GetValue<string>('Bateria');
+      LObservacao    := LJSONBody.GetValue<string>('Observacao');
+      LPagamento     := LJSONBody.GetValue<string>('Pagamento');
+      LValor         := LJSONBody.GetValue<string>('Valor');
+      LVeiculo       := LJSONBody.GetValue<string>('Veiculo');
+      LTipoServico   := LJSONBody.GetValue<String>('TipoServico');
+      LStatus        := LJSONBody.GetValue<string>('Status');
+      LId_Entrega    := req.Params['id_Entrega'];
+
+      LDAOEntregas.EditarPorId(LId_Entrega,LNome,LTelefone,LEndereco,
+                               LBateria,LObservacao,
+                               LPagamento,LValor,LVeiculo,
+                               LTipoServico,LStatus);
+      Res.Status(200);
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+end;
+
+
+procedure InserirEntrega(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas   : TDAOEntregas;
+  LJSONBody      : TJSONObject;
+  LNome          : String;
+  LTelefone      : String;
+  LEndereco      : String;
+  LBateria       : String;
+  LObservacao    : String;
+  LPagamento     : String;
+  LValor         : String;
+  LVeiculo       : String;
+  LTipoServico   : String;
+  LStatus        : String;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      LJSONBody      := Req.Body<TJSONObject>;
+      LNome          := LJSONBody.GetValue<string>('Nome');
+      LTelefone      := LJSONBody.GetValue<string>('Telefone');
+      LEndereco      := LJSONBody.GetValue<string>('Endereco');
+      LBateria       := LJSONBody.GetValue<string>('Bateria');
+      LObservacao    := LJSONBody.GetValue<string>('Observacao');
+      LPagamento     := LJSONBody.GetValue<string>('Pagamento');
+      LValor         := LJSONBody.GetValue<string>('Valor');
+      LVeiculo       := LJSONBody.GetValue<string>('Veiculo');
+      LTipoServico   := LJSONBody.GetValue<String>('TipoServico');
+      LStatus        := LJSONBody.GetValue<string>('Status');
+
+      LDAOEntregas.InserirEntrega(LNome,LTelefone,LEndereco,
+                                  LBateria,LObservacao,
+                                  LPagamento,LValor,LVeiculo,
+                                  LTipoServico,LStatus);
+
+      Res.Status(201);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+end;
+
+procedure ListarEntregasEmAberto(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOEntregas          : TDAOEntregas;
+begin
+  LDAOEntregas := TDAOEntregas.Create;
+  try
+    try
+      Res.Send<TJSONArray>(LDAOEntregas.ListarEntregasEmAberto())
+                          .Status(LDAOEntregas.CodigoResposta);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOEntregas);
+  end;
+end;
+
+
+
+
+
+
+end.

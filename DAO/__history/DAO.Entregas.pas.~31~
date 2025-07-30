@@ -1,0 +1,381 @@
+unit DAO.Entregas;
+
+interface
+
+uses Firedac.Comp.Client,
+     FireDAC.DApt,
+     System.JSON,
+     DataSet.Serialize,
+     DAO.Connection,
+     System.SysUtils,
+     System.Classes,
+     uImpressao,
+     System.Generics.Collections;
+
+type
+  TDAOEntregas = class(TDAOConnection)
+  private
+    FCodigoResposta : integer;
+  public
+    function CodigoResposta : integer;
+    function InserirEntrega(ANome,ATelefone,AEndereco,
+                            ABateria,AObservacao,APagamento,
+                            AValor,AVeiculo,ATipoServico,AStatus  : String): TJSONObject ;
+    function ListarEntregasEmAberto(): TJSONArray;
+    function ListarPorTelefone(ATelefone : String): TJSONArray;
+    function EditarPorId(AId_Entrega,
+                         ANome,ATelefone,AEndereco,
+                         ABateria,AObservacao,APagamento,
+                         AValor,AVeiculo,ATipoServico,
+                         AStatus  : String): TJSONObject;
+    function  ListarPorId(AId_Entrega : String): TJSONArray;
+    function  MarcarComoEntregue(AId_Entrega : String): TJSONObject;
+    function  ListarHistorico(): TJSONArray;
+    function  ListarAnotacao(): TJSONArray;
+    procedure ImprimirEntrega(id_pedido: integer);
+  end;
+
+
+
+implementation
+
+uses core.Utils.Tipos;
+
+
+function TDAOEntregas.CodigoResposta: integer;
+begin
+  Result := FCodigoResposta;
+end;
+
+function TDAOEntregas.InserirEntrega(ANome,ATelefone,AEndereco,
+                                     ABateria,AObservacao,APagamento,
+                                     AValor,AVeiculo,ATipoServico,AStatus  : String): TJSONObject;
+var
+  LQry: TFDQuery;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.SQL.Clear;
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('INSERT INTO ENTREGAS (                                          ');
+    LQry.SQL.Add('    NOME, TELEFONE, ENDERECO, BATERIA, OBSERVACAO,              ');
+    LQry.SQL.Add('    PAGAMENTO, VALOR, VEICULO, TIPOSERVICO, STATUS,Data)        ');
+    LQry.SQL.Add('VALUES (                                                        ');
+    LQry.SQL.Add('    :NOME, :TELEFONE, :ENDERECO, :BATERIA, :OBSERVACAO,         ');
+    LQry.SQL.Add('    :PAGAMENTO, :VALOR, :VEICULO, :TIPOSERVICO, :STATUS, :data) ');
+    Lqry.SQL.Add('Returning Id');
+    LQry.ParamByName('Nome').asString        := ANome;
+    LQry.ParamByName('Telefone').AsString    := ATelefone;
+    LQry.ParamByName('Endereco').AsString    := AEndereco;
+    LQry.ParamByName('Bateria').AsString     := ABateria;
+    LQry.ParamByName('Observacao').AsString  := AObservacao;
+    LQry.ParamByName('Pagamento').AsString   := APagamento;
+    LQry.ParamByName('Valor').AsString       := AValor;
+    LQry.ParamByName('Veiculo').AsString     := AVeiculo;
+    LQry.ParamByName('TipoServico').AsString := ATipoServico;
+    LQry.ParamByName('Status').AsString      := AStatus;
+    LQry.ParamByName('data').AsString        := DateTimeToStr(now);
+    LQry.active := true;
+
+    Result := LQry.ToJSONObject;
+    FCodigoResposta := 201;
+  finally
+    FreeAndNil(LQry);
+  end;
+
+end;
+
+function TDAOEntregas.ListarEntregasEmAberto(): TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONArray.Create;
+
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('SELECT *               ');
+      LQry.SQL.Add('FROM entregas          ');
+      LQry.SQL.Add('WHERE Status = :Status ');
+      LQry.ParamByName('Status').Value := 'A';
+      LQry.active := True;
+
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 200;
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+
+end;
+
+function TDAOEntregas.ListarPorId(AId_Entrega : String): TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONArray.Create;
+
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('SELECT *               ');
+      LQry.SQL.Add('FROM entregas          ');
+      LQry.SQL.Add('WHERE id = :id ');
+      LQry.ParamByName('id').Value := AId_Entrega;
+      LQry.active := True;
+
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 200;
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+
+end;
+
+function TDAOEntregas.ListarPorTelefone(ATelefone : String): TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONArray.Create;
+
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('SELECT *               ');
+      LQry.SQL.Add('FROM entregas          ');
+      LQry.SQL.Add('WHERE Telefone = :Telefone ');
+      LQry.ParamByName('Telefone').Value := ATelefone;
+      LQry.active := True;
+
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 200;
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOEntregas.EditarPorId(AId_Entrega,
+                                  ANome,ATelefone,AEndereco,
+                                  ABateria,AObservacao,APagamento,
+                                  AValor,AVeiculo,ATipoServico,
+                                  AStatus  : String): TJSONObject;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONObject.Create;
+
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('UPDATE ENTREGAS SET                ');
+      LQry.SQL.Add('    NOME        = :NOME,           ');
+      LQry.SQL.Add('    TELEFONE    = :TELEFONE,       ');
+      LQry.SQL.Add('    ENDERECO    = :ENDERECO,       ');
+      LQry.SQL.Add('    BATERIA     = :BATERIA,        ');
+      LQry.SQL.Add('    OBSERVACAO  = :OBSERVACAO,     ');
+      LQry.SQL.Add('    PAGAMENTO   = :PAGAMENTO,      ');
+      LQry.SQL.Add('    VALOR       = :VALOR,          ');
+      LQry.SQL.Add('    VEICULO     = :VEICULO,        ');
+      LQry.SQL.Add('    TIPOSERVICO = :TIPOSERVICO,    ');
+      LQry.SQL.Add('    "STATUS"    = :STATUS          ');
+      LQry.SQL.Add('    Data        = :data            ');
+      LQry.SQL.Add('WHERE ID = :ID                     ');
+      LQry.ParamByName('Nome').AsString        := ANome;
+      LQry.ParamByName('Telefone').AsString    := ATelefone;
+      LQry.ParamByName('Endereco').AsString    := AEndereco;
+      LQry.ParamByName('Bateria').AsString     := ABateria;
+      LQry.ParamByName('Observacao').AsString  := AObservacao;
+      LQry.ParamByName('Pagamento').AsString   := APagamento;
+      LQry.ParamByName('Valor').AsString       := AValor;
+      LQry.ParamByName('Veiculo').AsString     := AVeiculo;
+      LQry.ParamByName('TipoServico').AsString := ATipoServico;
+      LQry.ParamByName('Status').AsString      := AStatus;
+      LQry.ParamByName('ID').AsInteger         := AId_Entrega.ToInteger;
+      LQry.ParamByName('data').AsString        := DateTimeToStr(now);
+      LQry.ExecSQL;
+
+      FCodigoResposta := 200;
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOEntregas.MarcarComoEntregue(AId_Entrega : String): TJSONObject;
+var
+  LQry: TFDQuery;
+  LStatus : String;
+begin
+  Result := TJSONObject.Create;
+  LQry := TFDQuery.Create(nil);
+
+  LStatus :=  StatusEntrega[Integer(TStatusEntrega.tseEntregue)];
+
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('UPDATE ENTREGAS SET                ');
+      LQry.SQL.Add('    "STATUS"    = :STATUS          ');
+      LQry.SQL.Add('WHERE ID = :ID                     ');
+      LQry.ParamByName('ID').AsInteger    := AId_Entrega.ToInteger;
+      Lqry.ParamByName('Status').AsString := LStatus;
+      LQry.ExecSQL;
+
+      Result := LQry.ToJSONObject;
+      FCodigoResposta := 200;
+
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+
+end;
+
+function TDAOEntregas.ListarHistorico(): TJSONArray ;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONArray.Create;
+  LQry := TFDQuery.Create(nil);
+
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('SELECT *                                               ');
+      LQry.SQL.Add('  FROM ENTREGAS                                        ');
+      LQry.SQL.Add('WHERE STATUS = :Status And TipoServico <> :TipoServico ');
+      LQry.ParamByName('Status').AsString       :=  StatusEntrega[Integer(TStatusEntrega.tseEntregue)];
+      LQry.ParamByName('TipoServico').AsString  :=  TipoServico[Integer(TTipoServico.ttsAnotacao)];
+      LQry.Active := true;
+
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 201;
+
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+
+end;
+
+function TDAOEntregas.ListarAnotacao(): TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  Result := TJSONArray.Create;
+  LQry := TFDQuery.Create(nil);
+
+  try
+    try
+      LQry.SQL.Clear;
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('SELECT *                         ');
+      LQry.SQL.Add('  FROM ENTREGAS                  ');
+      LQry.SQL.Add('WHERE TipoServico = :TipoServico ');
+      Lqry.SQL.Add('ORDER BY ID DESC                 ');
+      LQry.ParamByName('TipoServico').AsString := TipoServico[Integer(TTipoServico.ttsAnotacao)];
+      LQry.Active := true;
+
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 201;
+
+    Except
+      FCodigoResposta := 500;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+procedure TDAOEntregas.ImprimirEntrega(id_pedido: integer);
+var
+  LQryEntrega     : TFDQuery;
+  Ltexto           : TStringList;
+  LnomeImpressora  : String;
+
+begin
+  LQryEntrega := TFDQuery.Create(nil);
+  Ltexto      := TStringList.Create;
+  try
+    try
+    LQryEntrega.Connection := Self.Connection;
+
+    LnomeImpressora := 'Microsoft Print To PDF';
+
+    LQryEntrega.SQL.Text := 'SELECT * FROM entregas WHERE id = :id';
+    LQryEntrega.ParamByName('id').AsInteger := id_pedido;
+    LQryEntrega.Active := True;
+
+      if not LQryEntrega.IsEmpty then
+      begin
+        LTexto.Add('ENTREGA');
+        LTexto.Add('******************************');
+        LTexto.Add('Cliente : '    + LQryEntrega.FieldByName('Nome').AsString);
+        LTexto.Add('Telefone: '    + LQryEntrega.FieldByName('Telefone').AsString);
+        LTexto.Add('Endereço: '    + LQryEntrega.FieldByName('Endereco').AsString);
+        LTexto.Add('Veículo : '    + LQryEntrega.FieldByName('Veiculo').AsString);
+        LTexto.Add('Bateria : '    + LQryEntrega.FieldByName('Bateria').AsString);
+        LTexto.Add('Pagamento: '   + LQryEntrega.FieldByName('Pagamento').AsString);
+        LTexto.Add('Valor   : R$ ' + LQryEntrega.FieldByName('Valor').AsString);
+        LTexto.Add('');
+
+        if LQryEntrega.FieldByName('Observacao').AsString <> '' then
+        begin
+          LTexto.Add('Obs:');
+          LTexto.Add(LQryEntrega.FieldByName('Observacao').AsString);
+          LTexto.Add('');
+        end;
+
+        LTexto.Add('.');
+        LTexto.Add('.');
+        LTexto.Add('.');
+
+        Impressao(LTexto, LnomeImpressora);
+        FCodigoResposta := 200;
+      end;
+
+    except on e: Exception do
+      raise Exception.Create('Erro ao imprimir: ' + E.Message);
+    end;
+
+  finally
+    FreeAndNil(Ltexto);
+    FreeAndNil(LQryEntrega);
+  end;
+end;
+
+
+
+end.
